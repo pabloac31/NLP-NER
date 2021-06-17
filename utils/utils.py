@@ -18,12 +18,16 @@ def evaluate_corpus(sequences, sequences_predictions):
     return correct / total
 
 
-def show_confusion_matrix(sequences, preds, normalize=False):
-    y_true = []
-    y_pred = []
-    for seq, pred in zip(sequences, preds):
-        y_true.extend(seq.y)
-        y_pred.extend(pred.y.tolist())
+def show_confusion_matrix(sequences, preds, normalize=False, positions=None, labels=None):
+    if type(sequences) == list:
+        y_true = [item for sublist in sequences for item in sublist]
+        y_pred = [item for sublist in preds for item in sublist]
+    else:
+        y_true = []
+        y_pred = []
+        for seq, pred in zip(sequences, preds):
+            y_true.extend(seq.y)
+            y_pred.extend(pred.y.tolist())
 
     cm = confusion_matrix(y_true, y_pred)
 
@@ -48,9 +52,9 @@ def show_confusion_matrix(sequences, preds, normalize=False):
             plt.text(j, i, "{:,}".format(cm[i, j]),
                      horizontalalignment="center",
                      color="white" if cm[i, j] > thresh else "black")
-
-    positions = list(sp.state_labels.values())
-    labels = list(sp.state_labels.keys())
+    if (positions==None) | (labels==None):
+        positions = list(sp.state_labels.values())
+        labels = list(sp.state_labels.keys())
 
     plt.xticks(positions, labels)
     plt.yticks(positions, labels)
@@ -61,10 +65,14 @@ def show_confusion_matrix(sequences, preds, normalize=False):
 
 
 def get_f1_score(sequences, preds):
-    y_true = []
-    y_pred = []
-    for seq, pred in zip(sequences, preds):
-        y_true.extend(seq.y)
-        y_pred.extend(pred.y.tolist())
+    if type(sequences) == list:
+        y_true = [item for sublist in sequences for item in sublist]
+        y_pred = [item for sublist in preds for item in sublist]
+    else:
+        y_true = []
+        y_pred = []
+        for seq, pred in zip(sequences, preds):
+            y_true.extend(seq.y)
+            y_pred.extend(pred.y.tolist())
 
     return f1_score(y_true, y_pred, average='weighted')
