@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 import skseq.sequences.sequence_classification_decoder as scd
 
 
@@ -143,7 +144,7 @@ class SequenceClassifier:
         """Run viterbi_decode at corpus level."""
 
         predictions = []
-        for sequence in dataset.seq_list:
+        for sequence in tqdm(dataset.seq_list):
             predicted_sequence, _ = self.viterbi_decode(sequence)
             predictions.append(predicted_sequence)
         return predictions
