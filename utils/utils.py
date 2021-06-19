@@ -6,6 +6,7 @@ import torch
 import torch.autograd as autograd
 import torch.nn as nn
 import torch.optim as optim
+from utils.skseq.sequences.sequence import Sequence
 
 
 def evaluate_corpus(sequences, sequences_predictions):
@@ -23,8 +24,8 @@ def evaluate_corpus(sequences, sequences_predictions):
     return correct / total
 
 
-def show_confusion_matrix(sequences, preds, normalize=False, positions=None, labels=None):
-    if type(sequences) == list:
+def show_confusion_matrix(sequences, preds, sp, normalize=False, positions=None, labels=None):
+    if type(sequences) != list:
         y_true = [item for sublist in sequences for item in sublist]
         y_pred = [item for sublist in preds for item in sublist]
     else:
@@ -70,7 +71,7 @@ def show_confusion_matrix(sequences, preds, normalize=False, positions=None, lab
 
 
 def get_f1_score(sequences, preds):
-    if type(sequences) == list:
+    if type(sequences) != list:
         y_true = [item for sublist in sequences for item in sublist]
         y_pred = [item for sublist in preds for item in sublist]
     else:
@@ -81,6 +82,55 @@ def get_f1_score(sequences, preds):
             y_pred.extend(pred.y.tolist())
 
     return f1_score(y_true, y_pred, average='weighted')
+
+
+def tiny_test(model, train_seq):
+
+    sentences = [
+        "The programmers from Barcelona might write a sentence without a spell checker.",
+        "The programmers from Barchelona cannot write a sentence without a spell checker.",
+        "Jack London went to Parris.",
+        "Jack London went to Paris.",
+        "Bill gates and Steve jobs never though Microsoft would become such a big company.",
+        "Bill Gates and Steve Jobs never though Microsof would become such a big company.",
+        "The president of U.S.A though they could win the war.",
+        "The president of the United States of America though they could win the war.",
+        "The king of Saudi Arabia wanted total control.",
+        "Robin does not want to go to Saudi Arabia.",
+        "Apple is a great company.",
+        "I really love apples and oranges.",
+        "Alice and Henry went to the Microsoft store to buy a new computer during their trip to New York."
+    ]
+
+    preds = []
+    y_pred = []
+
+    for p in sentences:
+        seq = Sequence(x=p.split(), y=[int(0) for w in p.split()])
+        pred = model.viterbi_decode(seq)[0]
+        preds.append(pred)
+        y_pred.extend(pred.y.tolist())
+        print(pred.to_words(train_seq, only_tag_translation=True), '\n')
+
+    # evaluate results
+    y_true = [0,0,0,1,0,0,0,0,0,0,0,0] + [0,0,0,0,0,0,0,0,0,0,0,0]
+    y_true += [6,7,0,0,0] + [6,7,0,0,1]
+    y_true += [6,7,0,6,7,0,0,4,0,0,0,0,0,0] + [6,7,0,6,7,0,0,0,0,0,0,0,0,0]
+    y_true += [0,0,0,1,0,0,0,0,0,0] + [0,0,0,0,1,5,5,5,0,0,0,0,0,0]
+    y_true += [0,0,0,1,5,0,0,0] + [6,0,0,0,0,0,0,1,5]
+    y_true += [4,0,0,0,0] + [0,0,0,0,0,0]
+    y_true += [6,0,6,0,0,0,4,0,0,0,0,0,0,0,0,0,0,1,5]
+
+    correct = total = 0
+    for y, y_hat in zip(y_true, y_pred):
+        if y_hat != "O":
+            if y == y_hat:
+                correct += 1
+            total += 1
+    print("\n===============================")
+    print(f"Accuracy in TINY TEST = {round(correct/total, 4)}")
+    print("===============================")
+
 
 
 class BiLSTM_CRF_v2(nn.Module):
