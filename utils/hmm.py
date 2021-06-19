@@ -11,14 +11,14 @@ def evaluate_hmm(Y, Y_hat, ignore_O=True):
                     total +=1
                     if y_hat_k == y_k:
                         correct +=1
-        print("Accuracy of posterior decode ignoring 'O' tags:", correct/total)
+        print("Accuracy of posterior decode ignoring 'O' tags:", round(correct/total,4))
     else:
         for y,y_hat in zip(Y,Y_hat):
             for y_k, y_hat_k in zip(y,y_hat):
                 total +=1
                 if y_hat_k == y_k:
                     correct +=1        
-        print("Accuracy of posterior decode counting 'O' tags:", correct/total)
+        print("Accuracy of posterior decode counting 'O' tags:", round(correct/total, 4))
 
 
 def logzero():
@@ -196,8 +196,18 @@ class HMM(object):
         
         # log_f_x initialized to -Inf because log(0) = -Inf
         log_f_x = np.zeros((self.n_states, n_x)) - np.Inf
-        x_emission_scores = np.array([self.scores['emission'][:, self.word_to_pos[w]] for w in x]).T
-        
+        #OOV words give error here, so I just assign them uniform probability across states
+        x_emission_scores = []
+        for w in x:   
+            try:
+                x_emission_scores.append(self.scores['emission'][:, self.word_to_pos[w]])
+            except:
+                print(f"{w} is OOV")
+                dims = self.scores["emission"][:,0].shape
+                col = np.ones(dims)
+                x_emission_scores.append(col/sum(col))
+                
+        x_emission_scores = np.array(x_emission_scores).T
         log_f_x[:,0] = x_emission_scores[:, 0] + self.scores['initial']
         for n in range(1, n_x):
             for s in range(self.n_states):
@@ -208,7 +218,6 @@ class HMM(object):
                 log_f_x[s, n] = x_emission_scores[s, n] + logsum(logsum_arg)
             
         log_likelihood = logsum(self.scores["final"]+log_f_x[:, -1])
-        #self.log_f_x = log_f_x
         
         return log_f_x, log_likelihood
     
@@ -218,7 +227,18 @@ class HMM(object):
         
         # log_b_x initialized to -Inf because log(0) = -Inf
         log_b_x = np.zeros((self.n_states, n_x)) - np.Inf
-        x_emission_scores = np.array([self.scores['emission'][:, self.word_to_pos[w]] for w in x]).T
+        #OOV words give error here, so I just assign them uniform probability across states
+        x_emission_scores = []
+        for w in x:   
+            try:
+                x_emission_scores.append(self.scores['emission'][:, self.word_to_pos[w]])
+            except:
+                print(f"{w} is OOV")
+                dims = self.scores["emission"][:,0].shape
+                col = np.ones(dims)
+                x_emission_scores.append(col/sum(col))
+                
+        x_emission_scores = np.array(x_emission_scores).T
         log_b_x[:,-1] = self.scores['final']
 
         for n in range(n_x-2, -1, -1):
@@ -231,7 +251,6 @@ class HMM(object):
         
         logsum_arg = self.scores['initial'] + log_b_x[:, 0] + x_emission_scores[:, 0]
         log_likelihood = logsum(logsum_arg)
-        #self.log_b_x = log_b_x   
         return log_b_x, log_likelihood
         
     def predict_labels(self, x: list, decode="posterior"):

@@ -17,15 +17,15 @@ def evaluate_corpus(sequences, sequences_predictions):
     for i, sequence in enumerate(sequences):
         pred = sequences_predictions[i]
         for j, y_hat in enumerate(pred.y):
-            if sequence.y[j] != "O":
+            if sequence.y[j] != 0: #0 is the index of the "O" tag
                 if sequence.y[j] == y_hat:
                     correct += 1
                 total += 1
     return correct / total
 
 
-def show_confusion_matrix(sequences, preds, sp, normalize=False, positions=None, labels=None):
-    if type(sequences) != list:
+def show_confusion_matrix(sequences, preds, sp=None, hmm=False, normalize=False, positions=None, labels=None):
+    if hmm:
         y_true = [item for sublist in sequences for item in sublist]
         y_pred = [item for sublist in preds for item in sublist]
     else:
@@ -70,8 +70,8 @@ def show_confusion_matrix(sequences, preds, sp, normalize=False, positions=None,
     plt.show()
 
 
-def get_f1_score(sequences, preds):
-    if type(sequences) != list:
+def get_f1_score(sequences, preds, hmm=False):
+    if hmm:
         y_true = [item for sublist in sequences for item in sublist]
         y_pred = [item for sublist in preds for item in sublist]
     else:
@@ -84,7 +84,7 @@ def get_f1_score(sequences, preds):
     return f1_score(y_true, y_pred, average='weighted')
 
 
-def tiny_test(model, train_seq):
+def tiny_test(model, train_seq=None, hmm=False, state_to_pos=None):
 
     sentences = [
         "The programmers from Barcelona might write a sentence without a spell checker.",
@@ -101,16 +101,23 @@ def tiny_test(model, train_seq):
         "I really love apples and oranges.",
         "Alice and Henry went to the Microsoft store to buy a new computer during their trip to New York."
     ]
-
-    preds = []
+    
     y_pred = []
-
-    for p in sentences:
-        seq = Sequence(x=p.split(), y=[int(0) for w in p.split()])
-        pred = model.viterbi_decode(seq)[0]
-        preds.append(pred)
-        y_pred.extend(pred.y.tolist())
-        print(pred.to_words(train_seq, only_tag_translation=True), '\n')
+    if hmm:
+        for p in sentences:
+            pred = model.predict_labels(p.split())
+            seq = Sequence(x=p.split(), y=pred)
+            print(seq, '\n') 
+            y_pred.extend(pred)
+        y_pred = [state_to_pos[w] for w in y_pred]
+    else:
+        preds = []
+        for p in sentences:
+            seq = Sequence(x=p.split(), y=[int(0) for w in p.split()])
+            pred = model.viterbi_decode(seq)[0]
+            preds.append(pred)
+            y_pred.extend(pred.y.tolist())
+            print(pred.to_words(train_seq, only_tag_translation=True), '\n')
 
     # evaluate results
     y_true = [0,0,0,1,0,0,0,0,0,0,0,0] + [0,0,0,0,0,0,0,0,0,0,0,0]
@@ -123,7 +130,7 @@ def tiny_test(model, train_seq):
 
     correct = total = 0
     for y, y_hat in zip(y_true, y_pred):
-        if y_hat != "O":
+        if y_hat != 0: #0 is the index of the "O" tag
             if y == y_hat:
                 correct += 1
             total += 1
