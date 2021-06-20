@@ -130,7 +130,7 @@ def tiny_test(model, train_seq=None, hmm=False, state_to_pos=None):
 
     correct = total = 0
     for y, y_hat in zip(y_true, y_pred):
-        if y_hat != 0: #0 is the index of the "O" tag
+        if y != 0: #0 is the index of the "O" tag
             if y == y_hat:
                 correct += 1
             total += 1
