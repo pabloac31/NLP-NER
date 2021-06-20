@@ -84,7 +84,7 @@ def get_f1_score(sequences, preds, hmm=False):
     return f1_score(y_true, y_pred, average='weighted')
 
 
-def tiny_test(model, train_seq=None, hmm=False, state_to_pos=None):
+def tiny_test(model, train_seq=None, hmm=False, state_to_pos=None, decode="viterbi"):
 
     sentences = [
         "The programmers from Barcelona might write a sentence without a spell checker.",
@@ -114,7 +114,10 @@ def tiny_test(model, train_seq=None, hmm=False, state_to_pos=None):
         preds = []
         for p in sentences:
             seq = Sequence(x=p.split(), y=[int(0) for w in p.split()])
-            pred = model.viterbi_decode(seq)[0]
+            if decode=="viterbi":
+                pred = model.viterbi_decode(seq)[0]
+            else: #to check if posterior decode works better
+                pred = model.posterior_decode(seq)
             preds.append(pred)
             y_pred.extend(pred.y.tolist())
             print(pred.to_words(train_seq, only_tag_translation=True), '\n')
